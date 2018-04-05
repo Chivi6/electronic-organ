@@ -1,2 +1,83 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+#include <reg51.h>
+#include <stdio.h>
+#include <intrins.h>
+
+sbit P2_3 = P2^3;
+sbit ACC_4 = ACC^4;
+unsigned char data vKey ;
+unsigned int code yinL[16]={0x67,0x04,0x90,0x0C,0x44,0xAC,0x09,0x34,0x82,0xC8,0x06,0x22,0x56,0x85,0x9A,0xC1},
+									yinH[16]={0xFA,0xFB,0xFB,0xFC,0xFC,0xFC,0xFD,0xFD,0xFD,0xFD,0xFE,0xFE,0xFE,0xFE,0xFE,0xFE};
+
+void delay()
+{
+	unsigned char i,j,k;
+	for(i=5;i>0;i--)
+	for(j=4;j>0;j--)
+	for(k=248;k>0;k--);
+} 
+
+void key()
+{
+	unsigned char data LIE = 0, c, HANG = 0;
+	
+			P3 = 0xF0;		
+			delay();       											
+			c = 0xFE;
+			while(1)
+			{		
+				P3 = c;
+				if (P3 != c)
+				{
+					ACC = P3;
+					ACC = (~ACC)&0xF0;
+					while(1)
+					{
+					if(ACC_4 == 1)
+					{
+						vKey = HANG*4+LIE;
+						return;
+					}
+					ACC = ACC/2;
+					LIE++;
+					if(LIE == 4)
+						return;
+					}
+				}
+			c  = c*2+1;
+			HANG++;
+			if(HANG == 4)
+			return;		
+	}
+	
+}
+
+void timer0() interrupt 1
+{
+	TL0 = yinL[vKey];
+	TH0 = yinH[vKey];
+	P2_3 = ~P2_3;
+}
+
+void main()
+{
+	TMOD = 0x01;
+	EA = 1;
+	ET0 = 1;
+  while(1)
+	{
+	P3 = 0xF0;
+	if(P3 != 0xF0)
+	{
+		key();
+			TL0 = yinL[vKey];
+			TH0 = yinH[vKey];
+			TR0 = 1;
+	}
+	else	
+		{
+			TR0 = 0;
+			P2_3 = 1;
+		}
+	}
+}
+
